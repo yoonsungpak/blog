@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import ErrorPage from "@/components/errors/ErrorPage";
+
+export const metadata: Metadata = { title: "404 | Blog" };
 
 export default function NotFound() {
     return (

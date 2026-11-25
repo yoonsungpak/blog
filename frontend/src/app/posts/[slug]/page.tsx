@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -6,6 +7,11 @@ import styles from "./page.module.css";
 
 export function generateStaticParams() {
     return samplePosts.map(({ slug }) => ({ slug }));
+}
+
+export async function generateMetadata({ params }: PageProps<"/posts/[slug]">): Promise<Metadata> {
+    const { slug } = await params;
+    return samplePosts.some((post) => post.slug === slug) ? {} : { title: "404 | Blog" };
 }
 
 export default function PostPage({ params }: PageProps<"/posts/[slug]">) {
