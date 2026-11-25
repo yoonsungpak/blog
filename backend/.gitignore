@@ -1,4 +1,8 @@
 HELP.md
+/database.db
+/database.db-journal
+/database.db-shm
+/database.db-wal
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar

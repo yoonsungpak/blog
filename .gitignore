@@ -11,3 +11,5 @@ Desktop.ini
 /.env
 /.env.*
 !/.env.example
+
+database.db
