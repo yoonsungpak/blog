@@ -5,6 +5,7 @@ import ng.yoonsu.blog.common.exception.AuthenticationException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +20,7 @@ import org.springframework.security.web.context.DelegatingSecurityContextReposit
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
@@ -41,7 +43,8 @@ public class SecurityConfig {
                         .sessionFixation(SessionManagementConfigurer.SessionFixationConfigurer::changeSessionId)
                 )
                 .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout")
+                        .logoutRequestMatcher(PathPatternRequestMatcher.withDefaults()
+                                .matcher(HttpMethod.POST, "/api/auth/logout"))
                         .logoutSuccessHandler(new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT))
                 )
                 .exceptionHandling(exception -> exception

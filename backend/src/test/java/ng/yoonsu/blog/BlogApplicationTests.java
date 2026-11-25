@@ -124,16 +124,17 @@ class BlogApplicationTests {
     }
 
     @Test
-    void logoutRequiresPostAndCsrf() throws Exception {
+    void logoutOnlyInvalidatesSessionOnPost() throws Exception {
+        var session = new MockHttpSession();
         mvc.perform(get("/logout").with(user("tester")))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/api/auth/logout").with(user("tester")))
+        mvc.perform(get("/api/auth/logout").session(session).with(user("tester")))
                 .andExpect(status().isNotFound());
-        mvc.perform(post("/api/auth/logout").with(user("tester")))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string(containsString("\"code\":\"ACCESS_DENIED\"")));
-        mvc.perform(post("/api/auth/logout").with(user("tester")).with(csrf()))
+        assertThat(session.isInvalid()).isFalse();
+
+        mvc.perform(post("/api/auth/logout").session(session).with(user("tester")))
                 .andExpect(status().isNoContent());
+        assertThat(session.isInvalid()).isTrue();
     }
 
     @Test
