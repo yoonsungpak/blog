@@ -1,0 +1,46 @@
+.feed {
+    padding-block: 1.5rem 4rem;
+}
+
+.boardGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+}
+
+.postList > article + article {
+    border-top: 0;
+}
+
+@media (min-width: 992px) {
+    .boardGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        --post-cover-height: 12rem;
+    }
+}
+
+.boardNav {
+    gap: 0.25rem 1.5rem;
+    border-bottom: 1px solid #e3e6e1;
+    margin-bottom: 2rem;
+}
+
+.boardNav a {
+    padding-block: 0.625rem;
+    border-bottom: 2px solid transparent;
+    font-size: 0.9375rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.boardNav a[aria-current="page"] {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.feedTitle {
+    margin-bottom: 1.125rem;
+    font-size: 1.25rem;
+    font-weight: 750;
+    letter-spacing: -0.04em;
+}

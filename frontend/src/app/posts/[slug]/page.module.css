@@ -1,0 +1,31 @@
+.article time {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+}
+
+.article {
+    max-width: 45rem;
+    padding-block: clamp(2.75rem, 8vw, 6rem);
+}
+
+.articleHeading {
+    gap: 0.5rem 1rem;
+    margin-block: 0.75rem 1.5rem;
+}
+
+.articleHeading a {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+}
+
+.article h1 {
+    font-size: clamp(1.625rem, 4vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.055em;
+    margin: 0;
+}
+
+.article p {
+    line-height: 1.85;
+}

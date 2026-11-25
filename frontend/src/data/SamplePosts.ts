@@ -1,0 +1,38 @@
+import { developmentBoard } from "./boards";
+
+export const samplePosts = [
+    {
+        slug: "small-css-rules",
+        board: developmentBoard,
+        cover: { src: "/sample-cover.png", alt: "책상 위 노트북과 초록색 노트" },
+        title: "예시 1",
+        date: "2026-11-24",
+        excerpt: "본문의 줄 길이와 문단 사이 여백을 조정하며 읽기 편한 화면을 만들어 봅니다.",
+        paragraphs: [
+            "한 줄이 너무 길면 다음 줄의 시작점을 찾기 어려워집니다. 본문 너비를 제한하고 실제 한글 문단으로 줄바꿈을 확인했습니다.",
+            "문단 사이의 여백도 일정하게 맞췄습니다. 제목과 본문 사이에는 조금 더 공간을 주어 글의 구조가 한눈에 들어오도록 했습니다.",
+        ],
+    },
+    {
+        slug: "git-branch-notes",
+        board: developmentBoard,
+        title: "예시 2",
+        date: "2026-11-21",
+        excerpt: "브랜치 이름과 커밋 메시지를 읽는 것만으로 변경 의도를 파악할 수 있게 정리해 봤습니다.",
+        paragraphs: [
+            "기능 하나를 작업 단위로 잡고, 브랜치 이름에 바꾸려는 대상을 적었습니다. 며칠 뒤 돌아와도 작업 맥락을 찾기 쉬웠습니다.",
+            "커밋을 나눌 때는 각 커밋을 따로 읽어도 변경 이유가 드러나는지 확인했습니다.",
+        ],
+    },
+    {
+        slug: "keyboard-navigation",
+        board: developmentBoard,
+        title: "예시 3",
+        date: "2026-11-18",
+        excerpt: "Tab 키로 페이지를 탐색하며 링크와 입력창의 순서, 포커스 표시를 살펴봤습니다.",
+        paragraphs: [
+            "페이지를 처음 열고 Tab 키를 눌러 링크와 입력창에 어떤 순서로 도달하는지 확인했습니다.",
+            "포커스가 배경과 구분되는지도 살펴봤습니다. 마우스를 쓰지 않아도 현재 위치를 바로 찾을 수 있도록 윤곽선을 조정했습니다.",
+        ],
+    },
+];

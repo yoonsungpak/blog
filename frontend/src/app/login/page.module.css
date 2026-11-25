@@ -1,0 +1,24 @@
+.login {
+    width: min(100%, 24rem);
+    margin-inline: auto;
+    padding-block: clamp(3rem, 8vw, 6rem);
+}
+
+.login h1 {
+    margin-bottom: 1.75rem;
+    font-size: 2rem;
+    font-weight: 750;
+    letter-spacing: -0.045em;
+}
+
+.submit {
+    --bs-btn-disabled-color: #fff;
+    --bs-btn-disabled-bg: var(--accent);
+    --bs-btn-disabled-border-color: var(--accent);
+}
+
+.status {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+}
