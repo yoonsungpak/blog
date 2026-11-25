@@ -1,18 +1,25 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import LogoutButton from "@/components/auth/LogoutButton";
-import { getCurrentSession } from "@/lib/auth/getCurrentSession";
+import { getSessionBySid } from "@/lib/auth/getCurrentSession";
+import UserService from "@/lib/user/service/UserService";
 import styles from "./SiteShell.module.css";
 
 export default async function Navbar() {
-    const session = await getCurrentSession();
+    const sid = (await cookies()).get("sid")?.value;
+    const [session, isAdmin] = await Promise.all([
+        getSessionBySid(sid),
+        sid ? new UserService().isAdmin(sid).catch(() => false) : false,
+    ]);
 
     return (
         <nav className="d-flex flex-wrap align-items-center justify-content-between gap-3" aria-label="주 메뉴">
             <Link className={styles.wordmark} href="/">blog<span>.</span></Link>
-            <div className={`${styles.actions} d-flex align-items-center gap-2`}>
+            <div className={`${styles.actions} d-flex flex-wrap align-items-center gap-2`}>
                 {session
                     ? <>
                         {session.username && <span className={styles.authAction}>{session.username}님</span>}
+                        {isAdmin && <Link className={styles.authAction} href="/admin">관리자</Link>}
                         <LogoutButton className={styles.authAction} />
                     </>
                     : <Link className={styles.authAction} href="/login">로그인</Link>}
