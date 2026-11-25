@@ -32,17 +32,24 @@
     width: min(100%, 22rem);
 }
 
-.search {
-    flex: 1;
-    min-width: 0;
-}
-
-.login {
+.authAction {
     flex-shrink: 0;
 }
 
-.login:hover {
+button.authAction {
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: inherit;
+}
+
+.authAction:hover {
+    color: inherit;
+}
+
+.search {
+    flex: 1;
+    min-width: 0;
 }
 
 .search input {

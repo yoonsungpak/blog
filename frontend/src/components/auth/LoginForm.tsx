@@ -1,13 +1,10 @@
 "use client"
 
 import styles from "@/components/auth/AuthForm.module.css";
-import { useRouter } from "next/navigation";
 import type {SubmitEvent} from "react";
 import { getSafeRedirect } from "./getSafeRedirect";
 
 export default function LoginForm() {
-    const router = useRouter();
-
     async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
         event.preventDefault();
 
@@ -41,7 +38,7 @@ export default function LoginForm() {
             return alert("인터넷 연결 상태를 확인해주세요.");
         }
 
-        router.replace(getSafeRedirect(window.location.search) ?? "/");
+        window.location.replace(getSafeRedirect(window.location.search) ?? "/");
     }
 
     return (
