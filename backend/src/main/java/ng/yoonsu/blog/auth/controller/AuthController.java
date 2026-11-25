@@ -48,6 +48,7 @@ public class AuthController {
         context.setAuthentication(authentication);
         SecurityContextHolder.setContext(context);
         securityContextRepository.saveContext(context, request, response);
+        request.getSession().setAttribute("username", user.username());
 
         return ApiResponse.ok("LOGIN_SUCCESS", new LoginResponseDto(user.userId()));
     }
