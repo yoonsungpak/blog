@@ -185,6 +185,7 @@ class BlogApplicationTests {
                 .andExpect(content().string(containsString("\"userId\":\"test-id\"")));
 
         assertThat(session.getId()).isNotEqualTo(previousId);
+        assertThat(session.getAttribute("userId")).isEqualTo("test-id");
         assertThat(session.getAttribute("username")).isEqualTo("tester");
         var authentication = ((SecurityContext) session.getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
         assertThat(authentication.getPrincipal()).isEqualTo(new AuthenticatedUser("test-id", "tester"));
