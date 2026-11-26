@@ -276,7 +276,7 @@ class BlogApplicationTests {
 
     @Test
     void adminCanCreatePrivateBoard() throws Exception {
-        mvc.perform(post("/api/boards/").with(mockAdmin()).contentType(MediaType.APPLICATION_JSON)
+        mvc.perform(post("/api/boards").with(mockAdmin()).contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"name":"비공개 기록","url":"private-notes","isPublic":false}
                                 """))

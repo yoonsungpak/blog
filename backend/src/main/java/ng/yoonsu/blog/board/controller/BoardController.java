@@ -24,7 +24,7 @@ public class BoardController {
 
     @AdminOnly
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("/")
+    @PostMapping({"", "/"})
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<CreateBoardResponseDto> create(
             @RequestBody @Valid CreateBoardRequestDto request,
