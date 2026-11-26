@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
-import ChangePasswordModal from "@/components/admin/ChangePasswordModal";
-import UserRoleForm from "@/components/admin/UserRoleForm";
-import UserRepository from "@/lib/user/repository/UserRepository";
 import UserService from "@/lib/user/service/UserService";
-
-const dateFormat = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeZone: "Asia/Seoul" });
+import styles from "./AdminMenu.module.css";
 
 const hasAdminAccess = cache(async () => {
     const sid = (await cookies()).get("sid")?.value;
@@ -15,45 +12,31 @@ const hasAdminAccess = cache(async () => {
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-    return { title: await hasAdminAccess() ? "사용자 관리 | Blog" : "404 | Blog" };
+    return { title: await hasAdminAccess() ? "관리자 | Blog" : "404 | Blog" };
 }
 
-async function AdminUsers() {
+async function AdminMenu() {
     if (!(await hasAdminAccess())) {
         notFound();
     }
 
-    const users = await new UserRepository().findAll();
-
     return (
         <section className="py-5" aria-labelledby="admin-title">
-            <h1 id="admin-title" className="h3 mb-4">사용자 관리</h1>
-            <p className="small text-body-secondary">역할 변경 기능은 준비 중입니다.</p>
-            <div className="table-responsive">
-                <table className="table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th scope="col">아이디</th>
-                            <th scope="col">가입일</th>
-                            <th scope="col">상태</th>
-                            <th scope="col">역할</th>
-                            <th scope="col">비밀번호</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {users.map((user) => (
-                            <tr key={user.id}>
-                                <th scope="row">{user.username}</th>
-                                <td>{dateFormat.format(user.createdAt)}</td>
-                                <td>{user.deletedAt ? "탈퇴" : "활성"}</td>
-                                <td>{user.deletedAt ? user.role : <UserRoleForm user={user} />}</td>
-                                <td>{user.deletedAt ? "—" : <ChangePasswordModal user={user} />}</td>
-                            </tr>
-                        ))}
-                        {!users.length && <tr><td colSpan={5}>등록된 사용자가 없어요.</td></tr>}
-                    </tbody>
-                </table>
-            </div>
+            <h1 id="admin-title" className="h3 mb-4">관리자 메뉴</h1>
+            <nav className="row g-3" aria-labelledby="admin-title">
+                <div className="col-12 col-sm-6">
+                    <Link className={styles.card} href="/admin/users">
+                        <h2>사용자 관리 <span aria-hidden="true">→</span></h2>
+                        <p>가입 상태를 확인하고 역할과 비밀번호를 변경합니다.</p>
+                    </Link>
+                </div>
+                <div className="col-12 col-sm-6">
+                    <Link className={styles.card} href="/admin/boards">
+                        <h2>게시판 관리 <span aria-hidden="true">→</span></h2>
+                        <p>게시판 이름과 주소를 확인하고 게시판으로 이동합니다.</p>
+                    </Link>
+                </div>
+            </nav>
         </section>
     );
 }
@@ -61,7 +44,7 @@ async function AdminUsers() {
 export default function AdminPage() {
     return (
         <Suspense fallback={null}>
-            <AdminUsers />
+            <AdminMenu />
         </Suspense>
     );
 }

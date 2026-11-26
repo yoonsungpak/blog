@@ -1,0 +1,60 @@
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: #16261d80;
+}
+
+.editor {
+    width: min(100%, 29rem);
+    max-height: 100%;
+    overflow: auto;
+    padding: clamp(1.25rem, 5vw, 1.75rem);
+    border: 1px solid var(--line);
+    border-radius: 1.125rem;
+    background: var(--paper);
+    box-shadow: 0 16px 40px #16261d33;
+}
+
+.primary {
+    --bs-btn-color: white;
+    --bs-btn-bg: var(--accent);
+    --bs-btn-hover-color: white;
+    --bs-btn-hover-bg: #1c3d2c;
+    --bs-btn-disabled-color: white;
+    --bs-btn-disabled-bg: var(--accent);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .5rem;
+}
+
+.actions > :global(.btn) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    width: 5rem;
+    min-height: 2.5rem;
+}
+
+.icon {
+    flex: 0 0 1rem;
+    height: 1rem;
+    background: currentColor;
+    mask: var(--icon) center / contain no-repeat;
+}
+
+.trash {
+    --icon: url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/icons/trash.svg");
+}
+
+.floppy {
+    --icon: url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/icons/floppy.svg");
+}
