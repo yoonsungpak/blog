@@ -44,7 +44,7 @@ async function AdminUsers() {
                                 <th scope="row">{user.username}</th>
                                 <td>{dateFormat.format(user.createdAt)}</td>
                                 <td>{user.deletedAt ? "탈퇴" : "활성"}</td>
-                                <td>{user.deletedAt ? user.role : <UserRoleForm role={user.role} />}</td>
+                                <td>{user.deletedAt ? user.role : <UserRoleForm user={user} />}</td>
                             </tr>
                         ))}
                         {!users.length && <tr><td colSpan={4}>등록된 사용자가 없어요.</td></tr>}
