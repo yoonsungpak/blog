@@ -42,6 +42,9 @@ public class Board {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    protected Board() {
+    }
+
     public Board(String name, String url, String createdBy, Boolean isPublic) {
         this.name = name;
         this.url = url;

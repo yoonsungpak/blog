@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import ng.yoonsu.blog.auth.security.AuthenticatedUser;
 import ng.yoonsu.blog.board.dto.create.CreateBoardRequestDto;
 import ng.yoonsu.blog.board.dto.create.CreateBoardResponseDto;
+import ng.yoonsu.blog.board.dto.delete.DeleteBoardResponseDto;
 import ng.yoonsu.blog.board.service.BoardService;
 import ng.yoonsu.blog.common.response.ApiResponse;
 import ng.yoonsu.blog.common.security.annotation.AdminOnly;
@@ -32,5 +33,14 @@ public class BoardController {
     ) {
         var dto = boardService.create(request, user.userId());
         return ApiResponse.ok("BOARD_CREATED", dto);
+    }
+
+    @AdminOnly
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/{boardId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<DeleteBoardResponseDto> delete(@PathVariable Long boardId) {
+        var dto = boardService.delete(boardId);
+        return ApiResponse.ok("BOARD_DELETED", dto);
     }
 }

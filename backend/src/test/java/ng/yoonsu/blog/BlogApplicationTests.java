@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Optional;
 import ng.yoonsu.blog.auth.security.AuthenticatedUser;
+import ng.yoonsu.blog.board.domain.Board;
 import ng.yoonsu.blog.board.repository.BoardRepository;
 import ng.yoonsu.blog.user.domain.Role;
 import ng.yoonsu.blog.user.domain.User;
@@ -45,6 +46,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -322,6 +324,17 @@ class BlogApplicationTests {
                     .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
                     .andExpect(jsonPath("$.message").value("게시판 URL에는 영문 소문자와 하이픈(-)만 사용할 수 있습니다."));
         }
+    }
+
+    @Test
+    void adminCanDeletePersistedBoard() throws Exception {
+        var board = boardRepository.save(new Board("삭제할 게시판", "delete-board", "admin", true));
+
+        mvc.perform(delete("/api/boards/{boardId}", board.getId()).with(mockAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("BOARD_DELETED"));
+
+        assertThat(boardRepository.existsById(board.getId())).isFalse();
     }
 
     private RequestPostProcessor mockAdmin() {
