@@ -6,8 +6,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.Optional;
 import ng.yoonsu.blog.auth.security.AuthenticatedUser;
+import ng.yoonsu.blog.user.domain.Role;
 import ng.yoonsu.blog.user.domain.User;
 import ng.yoonsu.blog.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -19,10 +21,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,11 +37,14 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -193,6 +200,54 @@ class BlogApplicationTests {
         assertThat(authentication.getAuthorities()).isEmpty();
         mvc.perform(get("/api/test-protected").session(session))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void anonymousUserCannotAccessAdminUpdate() throws Exception {
+        mvc.perform(patch("/api/users/target").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"role\":\"WRITER\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void nonAdminCannotChangeUserRole() throws Exception {
+        when(userRepository.findByIdAndDeletedAtIsNull("actor"))
+                .thenReturn(Optional.of(new User("actor", "test-hash")));
+
+        mvc.perform(patch("/api/users/target").with(loggedInAs("actor"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ADMIN\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    @Test
+    void adminCanChangeRoleUsingDatabaseRoleAndLosesAccessAfterDemotion() throws Exception {
+        var actor = new User("actor", "test-hash");
+        actor.setRole(Role.ADMIN);
+        var target = new User("target", "test-hash");
+        when(userRepository.findByIdAndDeletedAtIsNull("actor")).thenReturn(Optional.of(actor));
+        when(userRepository.findByIdAndDeletedAtIsNull("target")).thenReturn(Optional.of(target));
+
+        var sessionAuthentication = loggedInAs("actor");
+        mvc.perform(patch("/api/users/target").with(sessionAuthentication)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"WRITER\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.success").value(true));
+        assertThat(target.getRole()).isEqualTo(Role.WRITER);
+
+        actor.setRole(Role.VISITOR);
+        mvc.perform(patch("/api/users/target").with(sessionAuthentication)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ADMIN\"}"))
+                .andExpect(status().isNotFound());
+        assertThat(target.getRole()).isEqualTo(Role.WRITER);
+    }
+
+    private static RequestPostProcessor loggedInAs(String userId) {
+        return authentication(UsernamePasswordAuthenticationToken.authenticated(
+                new AuthenticatedUser(userId, userId), null, List.of()
+        ));
     }
 
     private HttpResponse<String> getOverHttp(String path) throws Exception {
