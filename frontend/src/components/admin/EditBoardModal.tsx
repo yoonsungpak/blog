@@ -1,8 +1,25 @@
+"use client"
+
 import Link from "next/link";
 import type { Board } from "@/lib/board/domain/Boards";
 import styles from "./BoardEditor.module.css";
 
 export default function EditBoardModal({ board }: { board: Board }) {
+    async function deleteBoard() {
+        try {
+            const res = await fetch(`/api/boards/${board.id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const data = await res.json();
+                return alert(data.message);
+            }
+        } catch {
+            return alert("게시판을 삭제하지 못했습니다.");
+        }
+
+        alert("게시판을 삭제했습니다.");
+        return location.reload();
+    }
+
     return (
         <form className={styles.backdrop} method="post">
             <section className={styles.editor} role="dialog" aria-modal="true" aria-labelledby="board-editor-title">
@@ -34,7 +51,7 @@ export default function EditBoardModal({ board }: { board: Board }) {
                 </div>
                 <p className="small text-body-secondary mt-4 mb-3">게시판 변경을 저장하는 기능은 아직 연결되지 않았습니다.</p>
                 <footer className={styles.actions}>
-                    <button className="btn btn-outline-danger rounded-3 me-auto" type="button" disabled>
+                    <button className="btn btn-outline-danger rounded-3 me-auto" type="button" onClick={deleteBoard}>
                         삭제
                         <span className={`${styles.icon} ${styles.trash}`} aria-hidden="true" />
                     </button>
