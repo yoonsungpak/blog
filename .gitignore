@@ -12,4 +12,6 @@ Desktop.ini
 /.env.*
 !/.env.example
 
+# Database files
 database.db
+dump.rdb
