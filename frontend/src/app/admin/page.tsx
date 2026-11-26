@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
+import ChangePasswordModal from "@/components/admin/ChangePasswordModal";
 import UserRoleForm from "@/components/admin/UserRoleForm";
 import UserRepository from "@/lib/user/repository/UserRepository";
 import UserService from "@/lib/user/service/UserService";
@@ -36,6 +37,7 @@ async function AdminUsers() {
                             <th scope="col">가입일</th>
                             <th scope="col">상태</th>
                             <th scope="col">역할</th>
+                            <th scope="col">비밀번호</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -45,9 +47,10 @@ async function AdminUsers() {
                                 <td>{dateFormat.format(user.createdAt)}</td>
                                 <td>{user.deletedAt ? "탈퇴" : "활성"}</td>
                                 <td>{user.deletedAt ? user.role : <UserRoleForm user={user} />}</td>
+                                <td>{user.deletedAt ? "—" : <ChangePasswordModal user={user} />}</td>
                             </tr>
                         ))}
-                        {!users.length && <tr><td colSpan={4}>등록된 사용자가 없어요.</td></tr>}
+                        {!users.length && <tr><td colSpan={5}>등록된 사용자가 없어요.</td></tr>}
                     </tbody>
                 </table>
             </div>

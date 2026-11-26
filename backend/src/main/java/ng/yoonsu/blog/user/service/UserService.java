@@ -61,15 +61,17 @@ public class UserService {
         var user = getUserById(userId);
         String newPassword = request.password();
 
-        if (!adminAction && newPassword != null) {
-            String oldPassword = request.oldPassword();
+        if (newPassword != null) {
+            if (!adminAction) {
+                String oldPassword = request.oldPassword();
 
-            if (newPassword.isBlank() || oldPassword == null || oldPassword.isBlank()) {
-                throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
-            }
+                if (newPassword.isBlank() || oldPassword == null || oldPassword.isBlank()) {
+                    throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+                }
 
-            if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-                throw new BusinessException(UserErrorCode.INVALID_PASSWORD);
+                if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+                    throw new BusinessException(UserErrorCode.INVALID_PASSWORD);
+                }
             }
 
             user.changePassword(passwordEncoder.encode(newPassword));
