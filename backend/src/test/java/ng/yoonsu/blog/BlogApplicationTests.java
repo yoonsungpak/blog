@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Optional;
 import ng.yoonsu.blog.auth.security.AuthenticatedUser;
+import ng.yoonsu.blog.board.repository.BoardRepository;
 import ng.yoonsu.blog.user.domain.Role;
 import ng.yoonsu.blog.user.domain.User;
 import ng.yoonsu.blog.user.repository.UserRepository;
@@ -53,7 +54,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "spring.datasource.url=jdbc:sqlite::memory:"
+        properties = {
+                "spring.datasource.url=jdbc:sqlite::memory:",
+                "spring.datasource.hikari.maximum-pool-size=1",
+                "spring.jpa.hibernate.ddl-auto=create-drop"
+        }
 )
 @Import(BlogApplicationTests.TestController.class)
 class BlogApplicationTests {
@@ -69,6 +74,9 @@ class BlogApplicationTests {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private BoardRepository boardRepository;
 
     @MockitoBean
     private UserRepository userRepository;
@@ -206,8 +214,8 @@ class BlogApplicationTests {
     void anonymousUserCannotAccessAdminUpdate() throws Exception {
         mvc.perform(patch("/api/users/target").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"role\":\"WRITER\"}"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
         verifyNoInteractions(userRepository);
     }
 
@@ -218,8 +226,8 @@ class BlogApplicationTests {
 
         mvc.perform(patch("/api/users/target").with(loggedInAs("actor"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ADMIN\"}"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }
 
     @Test
@@ -240,8 +248,87 @@ class BlogApplicationTests {
         actor.setRole(Role.VISITOR);
         mvc.perform(patch("/api/users/target").with(sessionAuthentication)
                         .contentType(MediaType.APPLICATION_JSON).content("{\"role\":\"ADMIN\"}"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
         assertThat(target.getRole()).isEqualTo(Role.WRITER);
+    }
+
+    @Test
+    void adminCreatesPublicBoardByDefaultAndDuplicateUrlReturnsConflict() throws Exception {
+        var admin = mockAdmin();
+
+        mvc.perform(post("/api/boards/").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"개발 기록","url":"development"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value("BOARD_CREATED"))
+                .andExpect(jsonPath("$.data.board.name").value("개발 기록"))
+                .andExpect(jsonPath("$.data.board.public").value(true))
+                .andExpect(jsonPath("$.data.board.createdBy").value("admin"));
+
+        mvc.perform(post("/api/boards/").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"다른 게시판","url":"development"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_BOARD_URL"));
+    }
+
+    @Test
+    void adminCanCreatePrivateBoard() throws Exception {
+        mvc.perform(post("/api/boards/").with(mockAdmin()).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"비공개 기록","url":"private-notes","isPublic":false}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.board.public").value(false))
+                .andExpect(jsonPath("$.data.board.createdAt").exists());
+
+        var createdAt = entityManager.createNativeQuery("select created_at from boards where url = :url")
+                .setParameter("url", "private-notes")
+                .getSingleResult();
+        assertThat(createdAt).isNotNull();
+    }
+
+    @Test
+    void boardCreationRejectsMissingUrlAndNonAdmin() throws Exception {
+        mvc.perform(post("/api/boards/").with(mockAdmin()).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"개발 기록"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+
+        when(userRepository.findByIdAndDeletedAtIsNull("visitor"))
+                .thenReturn(Optional.of(new User("visitor", "test-hash")));
+        mvc.perform(post("/api/boards/").with(loggedInAs("visitor")).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"개발 기록","url":"forbidden-board"}
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+        assertThat(boardRepository.existsByUrl("forbidden-board")).isFalse();
+    }
+
+    @Test
+    void boardCreationRejectsUrlsOutsideLowercaseLettersAndHyphens() throws Exception {
+        var admin = mockAdmin();
+        for (String url : List.of("", "Dev-notes", "dev_notes", "dev1", "개발")) {
+            mvc.perform(post("/api/boards/").with(admin).contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"name":"개발 기록","url":"%s"}
+                                    """.formatted(url)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                    .andExpect(jsonPath("$.message").value("게시판 URL에는 영문 소문자와 하이픈(-)만 사용할 수 있습니다."));
+        }
+    }
+
+    private RequestPostProcessor mockAdmin() {
+        var admin = new User("admin", "test-hash");
+        admin.setRole(Role.ADMIN);
+        when(userRepository.findByIdAndDeletedAtIsNull("admin")).thenReturn(Optional.of(admin));
+        return loggedInAs("admin");
     }
 
     private static RequestPostProcessor loggedInAs(String userId) {
