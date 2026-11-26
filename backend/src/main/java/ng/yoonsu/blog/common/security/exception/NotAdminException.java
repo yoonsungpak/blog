@@ -5,6 +5,6 @@ import ng.yoonsu.blog.common.exception.CommonErrorCode;
 
 public class NotAdminException extends BusinessException {
     public NotAdminException() {
-        super(CommonErrorCode.NOT_FOUND);
+        super(CommonErrorCode.ACCESS_DENIED);
     }
 }
