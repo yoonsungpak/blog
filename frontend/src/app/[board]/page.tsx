@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { boards } from "@/data/boards";
 import PostFeed from "@/components/posts/PostFeed/PostFeed";
-
-export function generateStaticParams() {
-    return boards.map(({ slug }) => ({ board: slug }));
-}
+import BoardRepository from "@/lib/board/repository/BoardRepository";
 
 export async function generateMetadata({ params }: PageProps<"/[board]">): Promise<Metadata> {
-    const { board } = await params;
-    return boards.some(({ slug }) => slug === board) ? {} : { title: "404 | Blog" };
+    const [{ board }, boards] = await Promise.all([params, new BoardRepository().findAll()]);
+    return boards.some(({ url, isPublic }) => isPublic && url === board) ? {} : { title: "404 | Blog" };
 }
 
 export default function BoardPage({ params }: PageProps<"/[board]">) {
@@ -22,8 +18,8 @@ export default function BoardPage({ params }: PageProps<"/[board]">) {
 }
 
 async function BoardFeed({ params }: Pick<PageProps<"/[board]">, "params">) {
-    const { board: slug } = await params;
-    const board = boards.find((entry) => entry.slug === slug);
+    const [{ board: slug }, boards] = await Promise.all([params, new BoardRepository().findAll()]);
+    const board = boards.find(({ url, isPublic }) => isPublic && url === slug);
 
     if (!board) {
         notFound();

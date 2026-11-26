@@ -1,9 +1,6 @@
-import { developmentBoard } from "./boards";
-
 export const samplePosts = [
     {
         slug: "small-css-rules",
-        board: developmentBoard,
         cover: { src: "/sample-cover.png", alt: "책상 위 노트북과 초록색 노트" },
         title: "예시 1",
         date: "2026-11-24",
@@ -15,7 +12,6 @@ export const samplePosts = [
     },
     {
         slug: "git-branch-notes",
-        board: developmentBoard,
         title: "예시 2",
         date: "2026-11-21",
         excerpt: "브랜치 이름과 커밋 메시지를 읽는 것만으로 변경 의도를 파악할 수 있게 정리해 봤습니다.",
@@ -26,7 +22,6 @@ export const samplePosts = [
     },
     {
         slug: "keyboard-navigation",
-        board: developmentBoard,
         title: "예시 3",
         date: "2026-11-18",
         excerpt: "Tab 키로 페이지를 탐색하며 링크와 입력창의 순서, 포커스 표시를 살펴봤습니다.",

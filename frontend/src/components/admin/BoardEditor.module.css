@@ -9,14 +9,48 @@
 }
 
 .editor {
-    width: min(100%, 29rem);
+    width: min(100%, 30rem);
     max-height: 100%;
     overflow: auto;
-    padding: clamp(1.25rem, 5vw, 1.75rem);
+    padding: clamp(1.25rem, 5vw, 2rem);
     border: 1px solid var(--line);
+    border-top: 5px solid var(--accent);
     border-radius: 1.125rem;
-    background: var(--paper);
-    box-shadow: 0 16px 40px #16261d33;
+    background: #f8f8f2;
+    color: var(--ink);
+    box-shadow: 0 22px 65px #15251b33;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 750;
+    letter-spacing: -.045em;
+}
+
+.editor :global(.form-label) {
+    font-size: .875rem;
+    font-weight: 650;
+}
+
+.editor :global(.form-control) {
+    min-height: 2.75rem;
+    border-color: var(--line);
+}
+
+.editor :global(.form-control:focus) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px #28533c30;
 }
 
 .primary {

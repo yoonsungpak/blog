@@ -3,8 +3,9 @@ import { resolve } from "node:path";
 import Database from "better-sqlite3";
 import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { users } from "../user/domain/Users";
+import { boards } from "../board/domain/Boards";
 
-const schema = { users };
+const schema = { users, boards };
 let db: BetterSQLite3Database<typeof schema> | undefined;
 
 export function getDb() {
