@@ -45,6 +45,7 @@ export default function CreateBoardModal() {
             }
             alert("게시판이 생성되었습니다.");
             router.replace("/admin/boards");
+            router.refresh();
         } catch {
             setError("서버에 연결하지 못했습니다. 다시 시도해 주세요.");
         } finally {

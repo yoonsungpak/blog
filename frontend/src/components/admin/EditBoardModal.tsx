@@ -4,9 +4,11 @@ import Link from "next/link";
 import type { Board } from "@/lib/board/domain/Boards";
 import styles from "./BoardEditor.module.css";
 import { type SubmitEvent } from "react";
-import {redirect} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function EditBoardModal({ board }: { board: Board }) {
+    const router = useRouter();
+
     async function deleteBoard() {
         if (!confirm("정말로 게시판을 삭제하겠습니까? 게시글도 함께 삭제되며 복구가 불가능합니다."))
             return
@@ -45,8 +47,7 @@ export default function EditBoardModal({ board }: { board: Board }) {
             ...(isPublic !== board.isPublic && {isPublic : isPublic}),
         };
 
-        console.log(Object.keys(changes).length)
-        if (Object.keys(changes).length == 0) {
+        if (Object.keys(changes).length === 0) {
             return alert("변경 사항이 없습니다.");
         }
 
@@ -68,7 +69,8 @@ export default function EditBoardModal({ board }: { board: Board }) {
         }
 
         alert("게시판이 수정되었습니다.");
-        redirect("/admin/boards");
+        router.replace("/admin/boards");
+        router.refresh();
     }
 
     return (
