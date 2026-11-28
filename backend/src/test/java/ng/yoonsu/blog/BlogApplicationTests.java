@@ -327,6 +327,94 @@ class BlogApplicationTests {
     }
 
     @Test
+    void adminCanPartiallyUpdateBoardVisibility() throws Exception {
+        var board = boardRepository.save(new Board("공개 기록", "visibility-board", "admin", true));
+
+        mvc.perform(patch("/api/boards/{boardId}", board.getId()).with(mockAdmin())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"isPublic\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("BOARD_UPDATED"));
+
+        var updated = boardRepository.findById(board.getId()).orElseThrow();
+        assertThat(updated.getPublic()).isFalse();
+        assertThat(updated.getName()).isEqualTo(board.getName());
+        assertThat(updated.getUrl()).isEqualTo(board.getUrl());
+    }
+
+    @Test
+    void adminCanUpdateBoardNameAndUrl() throws Exception {
+        var board = boardRepository.save(new Board("이전 이름", "old-board-url", "admin", false));
+
+        mvc.perform(patch("/api/boards/{boardId}", board.getId()).with(mockAdmin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"새 이름","url":"new-board-url"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("BOARD_UPDATED"));
+
+        var updated = boardRepository.findById(board.getId()).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("새 이름");
+        assertThat(updated.getUrl()).isEqualTo("new-board-url");
+        assertThat(updated.getPublic()).isFalse();
+    }
+
+    @Test
+    void boardUpdateRejectsInvalidAndMissingIds() throws Exception {
+        var admin = mockAdmin();
+        for (String boardId : List.of("not-a-number", "9223372036854775808", String.valueOf(Long.MAX_VALUE))) {
+            mvc.perform(patch("/api/boards/{boardId}", boardId).with(admin)
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"isPublic\":true}"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.code").value("BOARD_NOT_FOUND"));
+        }
+    }
+
+    @Test
+    void boardUpdateRejectsEmptyBodyFieldsAndInvalidValues() throws Exception {
+        var board = boardRepository.save(new Board("검증 대상", "validate-board", "admin", true));
+        var admin = mockAdmin();
+        for (String body : List.of("{}", "{\"name\":\"   \"}", "{\"url\":\"Bad_URL\"}")) {
+            mvc.perform(patch("/api/boards/{boardId}", board.getId()).with(admin)
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+        }
+    }
+
+    @Test
+    void boardUpdateRejectsDuplicateUrlWithoutSavingOtherChanges() throws Exception {
+        var board = boardRepository.save(new Board("변경 전", "update-source", "admin", true));
+        boardRepository.save(new Board("다른 게시판", "update-conflict", "admin", true));
+
+        mvc.perform(patch("/api/boards/{boardId}", board.getId()).with(mockAdmin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"변경 후","url":"update-conflict"}
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("DUPLICATE_BOARD_URL"));
+
+        var unchanged = boardRepository.findById(board.getId()).orElseThrow();
+        assertThat(unchanged.getName()).isEqualTo(board.getName());
+        assertThat(unchanged.getUrl()).isEqualTo(board.getUrl());
+    }
+
+    @Test
+    void boardUpdateRequiresAdmin() throws Exception {
+        var board = boardRepository.save(new Board("관리자 게시판", "admin-edit-board", "admin", true));
+        when(userRepository.findByIdAndDeletedAtIsNull("visitor"))
+                .thenReturn(Optional.of(new User("visitor", "test-hash")));
+
+        mvc.perform(patch("/api/boards/{boardId}", board.getId()).with(loggedInAs("visitor"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"isPublic\":false}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+
+        assertThat(boardRepository.findById(board.getId()).orElseThrow().getPublic()).isTrue();
+    }
+
+    @Test
     void adminCanDeletePersistedBoard() throws Exception {
         var board = boardRepository.save(new Board("삭제할 게시판", "delete-board", "admin", true));
 

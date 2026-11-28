@@ -1,14 +1,16 @@
 package ng.yoonsu.blog.board.service;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import ng.yoonsu.blog.board.domain.Board;
 import ng.yoonsu.blog.board.dto.create.CreateBoardRequestDto;
 import ng.yoonsu.blog.board.dto.create.CreateBoardResponseDto;
 import ng.yoonsu.blog.board.dto.delete.DeleteBoardResponseDto;
+import ng.yoonsu.blog.board.dto.update.UpdateBoardRequestDto;
 import ng.yoonsu.blog.board.exception.BoardErrorCode;
 import ng.yoonsu.blog.board.repository.BoardRepository;
 import ng.yoonsu.blog.common.exception.BusinessException;
-import org.hibernate.sql.Delete;
+import ng.yoonsu.blog.common.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -32,6 +34,42 @@ public class BoardService {
         boardRepository.save(board);
 
         return new CreateBoardResponseDto(board);
+    }
+
+    @Transactional
+    public void update(String rawBoardId, @Valid UpdateBoardRequestDto request) {
+        if (request.name() == null && request.url() == null && request.isPublic() == null) {
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+        }
+
+        long boardId;
+        try {
+            boardId = Long.parseLong(rawBoardId);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(BoardErrorCode.BOARD_NOT_FOUND);
+        }
+
+        var board = boardRepository.findById(boardId).orElseThrow(() -> new BusinessException(BoardErrorCode.BOARD_NOT_FOUND));
+
+        if (request.name() != null) {
+            if (request.name().trim().isEmpty())
+                throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+            board.setName(request.name());
+        }
+
+
+        if (request.url() != null) {
+            if (boardRepository.existsByUrl(request.url()))
+                throw new BusinessException(BoardErrorCode.DUPLICATE_BOARD_URL);
+
+            board.setUrl(request.url());
+        }
+
+        if (request.isPublic() != null) {
+           board.setPublic(request.isPublic());
+        }
+
+        boardRepository.save(board);
     }
 
     public DeleteBoardResponseDto delete(Long boardId) {

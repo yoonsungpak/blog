@@ -5,6 +5,7 @@ import ng.yoonsu.blog.auth.security.AuthenticatedUser;
 import ng.yoonsu.blog.board.dto.create.CreateBoardRequestDto;
 import ng.yoonsu.blog.board.dto.create.CreateBoardResponseDto;
 import ng.yoonsu.blog.board.dto.delete.DeleteBoardResponseDto;
+import ng.yoonsu.blog.board.dto.update.UpdateBoardRequestDto;
 import ng.yoonsu.blog.board.service.BoardService;
 import ng.yoonsu.blog.common.response.ApiResponse;
 import ng.yoonsu.blog.common.security.annotation.AdminOnly;
@@ -33,6 +34,17 @@ public class BoardController {
     ) {
         var dto = boardService.create(request, user.userId());
         return ApiResponse.ok("BOARD_CREATED", dto);
+    }
+
+    @AdminOnly
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping("/{boardId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ApiResponse<Void> update(
+            @RequestBody @Valid UpdateBoardRequestDto request,
+            @PathVariable String boardId) {
+        boardService.update(boardId, request);
+        return ApiResponse.ok("BOARD_UPDATED");
     }
 
     @AdminOnly
