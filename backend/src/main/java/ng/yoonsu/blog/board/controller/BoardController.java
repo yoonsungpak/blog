@@ -52,7 +52,7 @@ public class BoardController {
     @PreAuthorize("isAuthenticated()")
     @PatchMapping("/order")
     public ApiResponse<Void> reorder(@RequestBody @Valid ReorderBoardsRequestDto request) {
-        boardService.reorder(request.boardIds());
+        boardService.reorder(request.categoryId(), request.boardIds());
         return ApiResponse.ok("BOARD_ORDER_UPDATED");
     }
 

@@ -4,6 +4,8 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.util.List;
 import java.util.Optional;
+import ng.yoonsu.blog.board.domain.Category;
+import ng.yoonsu.blog.board.repository.CategoryRepository;
 import ng.yoonsu.blog.board.domain.Board;
 import ng.yoonsu.blog.board.repository.BoardRepository;
 import ng.yoonsu.blog.user.domain.User;
@@ -17,6 +19,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,12 +28,16 @@ class BoardIntegrationTests extends ApiIntegrationTestSupport {
     @Autowired
     private BoardRepository boardRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
 
     @AfterEach
     void clearBoards() {
         boardRepository.deleteAllInBatch();
+        categoryRepository.deleteAllInBatch();
     }
 
     @Test
@@ -54,6 +61,96 @@ class BoardIntegrationTests extends ApiIntegrationTestSupport {
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_BOARD_URL"));
+    }
+
+    @Test
+    void adminCanManageCategoriesAndMoveBoards() throws Exception {
+        var admin = mockAdmin();
+        mvc.perform(post("/api/categories").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"개발\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.displayOrder").value(0));
+        var category = categoryRepository.findAll().get(0);
+
+        mvc.perform(put("/api/categories/{id}", category.getId()).with(admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"개발 기록\"}"))
+                .andExpect(status().isOk());
+        assertThat(categoryRepository.findById(category.getId()).orElseThrow().getName()).isEqualTo("개발 기록");
+
+        mvc.perform(post("/api/boards").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"게시판","url":"category-board","categoryId":%d}
+                                """.formatted(category.getId())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.board.categoryId").value(category.getId()));
+        var board = boardRepository.findAll().get(0);
+
+        mvc.perform(patch("/api/boards/{id}", board.getId()).with(admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"category\":{\"id\":null}}"))
+                .andExpect(status().isOk());
+        assertThat(boardRepository.findById(board.getId()).orElseThrow().getCategoryId()).isNull();
+
+        mvc.perform(patch("/api/boards/{id}", board.getId()).with(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"category\":{\"id\":%d}}".formatted(category.getId())))
+                .andExpect(status().isOk());
+        assertThat(boardRepository.findById(board.getId()).orElseThrow().getCategoryId()).isEqualTo(category.getId());
+
+        mvc.perform(delete("/api/categories/{id}", category.getId()).with(admin))
+                .andExpect(status().isOk());
+        assertThat(categoryRepository.existsById(category.getId())).isFalse();
+        assertThat(boardRepository.findById(board.getId()).orElseThrow().getCategoryId()).isNull();
+    }
+
+    @Test
+    void adminCanReorderCategoriesWithoutChangingBoardOrder() throws Exception {
+        var first = categoryRepository.save(new Category("첫 카테고리"));
+        var second = categoryRepository.save(new Category("둘째 카테고리"));
+        var board = new Board("게시판", "board-in-category", "admin", true);
+        board.moveToCategory(first);
+        board.setDisplayOrder(3);
+        boardRepository.save(board);
+
+        var admin = mockAdmin();
+        mvc.perform(patch("/api/categories/order").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"categoryIds\":[%d,%d]}".formatted(second.getId(), first.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("BOARD_CATEGORY_ORDER_UPDATED"));
+        mvc.perform(patch("/api/categories/order").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"categoryIds\":[%d,%d]}".formatted(first.getId(), first.getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BOARD_CATEGORY_ORDER_MISMATCH"));
+
+        assertThat(categoryRepository.findById(second.getId()).orElseThrow().getDisplayOrder()).isEqualTo(1);
+        assertThat(categoryRepository.findById(first.getId()).orElseThrow().getDisplayOrder()).isEqualTo(2);
+        assertThat(boardRepository.findById(board.getId()).orElseThrow().getDisplayOrder()).isEqualTo(3);
+    }
+
+    @Test
+    void boardReorderingCannotCrossCategoryBoundaries() throws Exception {
+        var category = categoryRepository.save(new Category("개발"));
+        var first = new Board("첫 게시판", "category-first", "admin", true);
+        first.moveToCategory(category);
+        boardRepository.save(first);
+        var second = new Board("둘째 게시판", "category-second", "admin", false);
+        second.moveToCategory(category);
+        boardRepository.save(second);
+        var ungrouped = boardRepository.save(new Board("미분류 게시판", "ungrouped-board", "admin", true));
+        var admin = mockAdmin();
+
+        mvc.perform(patch("/api/boards/order").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"categoryId\":%d,\"boardIds\":[%d,%d]}"
+                                .formatted(category.getId(), second.getId(), first.getId())))
+                .andExpect(status().isOk());
+        mvc.perform(patch("/api/boards/order").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"categoryId\":%d,\"boardIds\":[%d,%d]}"
+                                .formatted(category.getId(), ungrouped.getId(), second.getId())))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("BOARD_ORDER_MISMATCH"));
+
+        assertThat(boardRepository.findById(second.getId()).orElseThrow().getDisplayOrder()).isEqualTo(1);
+        assertThat(boardRepository.findById(first.getId()).orElseThrow().getDisplayOrder()).isEqualTo(2);
+        assertThat(boardRepository.findById(ungrouped.getId()).orElseThrow().getDisplayOrder()).isZero();
     }
 
     @Test

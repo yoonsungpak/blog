@@ -1,6 +1,7 @@
 package ng.yoonsu.blog.board.domain;
 
 import jakarta.persistence.*;
+import ng.yoonsu.blog.board.domain.Category;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.data.annotation.CreatedDate;
@@ -8,6 +9,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @Entity
 @DynamicUpdate
@@ -37,6 +39,10 @@ public class Board {
     @Column(name = "display_order", nullable = false)
     @ColumnDefault("0")
     private long displayOrder;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 
     @Column(name = "created_by", updatable = false)
     private String createdBy;
@@ -93,6 +99,18 @@ public class Board {
 
     public void setDisplayOrder(long displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public Long getCategoryId() {
+        return category == null ? null : category.getId();
+    }
+
+    public void moveToCategory(Category category) {
+        Long nextId = category == null ? null : category.getId();
+        if (!Objects.equals(getCategoryId(), nextId)) {
+            this.category = category;
+            this.displayOrder = 0;
+        }
     }
 
     public String getCreatedBy() {

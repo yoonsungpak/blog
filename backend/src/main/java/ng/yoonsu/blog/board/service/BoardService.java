@@ -2,6 +2,7 @@ package ng.yoonsu.blog.board.service;
 
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import ng.yoonsu.blog.board.service.CategoryService;
 import ng.yoonsu.blog.board.domain.Board;
 import ng.yoonsu.blog.board.dto.create.CreateBoardRequestDto;
 import ng.yoonsu.blog.board.dto.create.CreateBoardResponseDto;
@@ -20,9 +21,11 @@ import java.util.stream.Collectors;
 @Service
 public class BoardService {
     private final BoardRepository boardRepository;
+    private final CategoryService categoryService;
 
-    public BoardService(BoardRepository boardRepository) {
+    public BoardService(BoardRepository boardRepository, CategoryService categoryService) {
         this.boardRepository = boardRepository;
+        this.categoryService = categoryService;
     }
 
     @Transactional
@@ -35,6 +38,9 @@ public class BoardService {
             throw new BusinessException(BoardErrorCode.DUPLICATE_BOARD_URL);
 
         Board board = new Board(name, url, userId, isPublic);
+        if (request.categoryId() != null) {
+            board.moveToCategory(categoryService.find(request.categoryId()));
+        }
         boardRepository.save(board);
 
         return new CreateBoardResponseDto(board);
@@ -42,7 +48,8 @@ public class BoardService {
 
     @Transactional
     public void update(String rawBoardId, @Valid UpdateBoardRequestDto request) {
-        if (request.name() == null && request.url() == null && request.isPublic() == null) {
+        if (request.name() == null && request.url() == null && request.isPublic() == null
+                && request.category() == null) {
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
         }
 
@@ -73,6 +80,10 @@ public class BoardService {
            board.setPublic(request.isPublic());
         }
 
+        if (request.category() != null) {
+            var id = request.category().id();
+            board.moveToCategory(id == null ? null : categoryService.find(id));
+        }
         boardRepository.save(board);
     }
 
@@ -82,8 +93,9 @@ public class BoardService {
     }
 
     @Transactional
-    public void reorder(List<Long> boardIds) {
-        var boardsById = boardRepository.findAll().stream()
+    public void reorder(Long categoryId, List<Long> boardIds) {
+        var category = categoryId == null ? null : categoryService.find(categoryId);
+        var boardsById = boardRepository.findByCategory(category).stream()
                 .collect(Collectors.toMap(Board::getId, board -> board));
         if (boardIds.size() != boardsById.size() || !boardsById.keySet().equals(new HashSet<>(boardIds))) {
             throw new BusinessException(BoardErrorCode.BOARD_ORDER_MISMATCH);

@@ -6,5 +6,6 @@ import jakarta.validation.constraints.Positive;
 import java.util.List;
 
 public record ReorderBoardsRequestDto(
-        @NotEmpty List<@NotNull @Positive Long> boardIds
+        @NotEmpty List<@NotNull @Positive Long> boardIds,
+        @Positive Long categoryId
 ) {}
