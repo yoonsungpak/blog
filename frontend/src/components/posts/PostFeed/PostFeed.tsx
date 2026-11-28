@@ -34,7 +34,7 @@ export default async function PostFeed({ board }: { board?: Board }) {
                         boardName={firstBoard?.name ?? firstBoard?.url ?? ""}
                         cover={cover}
                         coverSizes={board
-                            ? "(min-width: 992px) 380px, 100vw"
+                            ? "(min-width: 1232px) 294px, (min-width: 992px) calc((100vw - 22rem) / 3), calc(100vw - 3rem)"
                             : "(min-width: 1232px) 928px, (min-width: 992px) calc(100vw - 19rem), calc(100vw - 3rem)"}
                         title={title}
                         excerpt={excerpt}
@@ -46,22 +46,11 @@ export default async function PostFeed({ board }: { board?: Board }) {
 
     return (
         <div className={styles.feed}>
-            {board ? (
-                <>
-                    <nav className={`${styles.boardNav} d-flex flex-wrap`} aria-label="게시판">
-                        {boardLinks}
-                    </nav>
-                    {posts}
-                </>
-            ) : (
-                <>
-                    <Profile />
-                    <div className={styles.homeLayout}>
-                        <BoardSidebar>{boardLinks}</BoardSidebar>
-                        {posts}
-                    </div>
-                </>
-            )}
+            {!board && <Profile />}
+            <div className={styles.feedLayout}>
+                <BoardSidebar>{boardLinks}</BoardSidebar>
+                {posts}
+            </div>
         </div>
     );
 }
