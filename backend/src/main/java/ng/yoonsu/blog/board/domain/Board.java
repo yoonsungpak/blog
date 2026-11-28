@@ -1,6 +1,8 @@
 package ng.yoonsu.blog.board.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -8,6 +10,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.Instant;
 
 @Entity
+@DynamicUpdate
 @EntityListeners(AuditingEntityListener.class)
 @Table(
         name = "boards",
@@ -30,6 +33,10 @@ public class Board {
 
     @Column(nullable = false)
     private boolean isPublic = true;
+
+    @Column(name = "display_order", nullable = false)
+    @ColumnDefault("0")
+    private long displayOrder;
 
     @Column(name = "created_by", updatable = false)
     private String createdBy;
@@ -78,6 +85,14 @@ public class Board {
 
     public void setPublic(boolean isPublic) {
         this.isPublic = isPublic;
+    }
+
+    public long getDisplayOrder() {
+        return this.displayOrder;
+    }
+
+    public void setDisplayOrder(long displayOrder) {
+        this.displayOrder = displayOrder;
     }
 
     public String getCreatedBy() {

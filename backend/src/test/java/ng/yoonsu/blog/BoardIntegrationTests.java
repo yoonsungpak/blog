@@ -45,6 +45,7 @@ class BoardIntegrationTests extends ApiIntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value("BOARD_CREATED"))
                 .andExpect(jsonPath("$.data.board.name").value("개발 기록"))
                 .andExpect(jsonPath("$.data.board.public").value(true))
+                .andExpect(jsonPath("$.data.board.displayOrder").doesNotExist())
                 .andExpect(jsonPath("$.data.board.createdBy").value("admin"));
 
         mvc.perform(post("/api/boards/").with(admin).contentType(MediaType.APPLICATION_JSON)
@@ -53,6 +54,75 @@ class BoardIntegrationTests extends ApiIntegrationTestSupport {
                                 """))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_BOARD_URL"));
+    }
+
+    @Test
+    void boardDisplayOrderCanOnlyBeChangedThroughReorderEndpoint() throws Exception {
+        var admin = mockAdmin();
+        mvc.perform(post("/api/boards").with(admin).contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"순서 지정","url":"ordered-board","displayOrder":3}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.board.displayOrder").doesNotExist());
+        var board = boardRepository.findAll().get(0);
+        assertThat(board.getDisplayOrder()).isZero();
+
+        mvc.perform(patch("/api/boards/order").with(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"boardIds\":[%d]}".formatted(board.getId())))
+                .andExpect(status().isOk());
+
+        mvc.perform(patch("/api/boards/{boardId}", board.getId()).with(admin)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name":"새 이름","displayOrder":0}
+                                """))
+                .andExpect(status().isOk());
+
+        var updated = boardRepository.findById(board.getId()).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("새 이름");
+        assertThat(updated.getDisplayOrder()).isEqualTo(1);
+    }
+
+    @Test
+    void adminCanSaveDisplayOrderForAllBoards() throws Exception {
+        var first = boardRepository.save(new Board("첫 게시판", "order-first", "admin", true));
+        var second = boardRepository.save(new Board("둘째 게시판", "order-second", "admin", false));
+
+        mvc.perform(patch("/api/boards/order").with(mockAdmin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"boardIds\":[%d,%d]}".formatted(second.getId(), first.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("BOARD_ORDER_UPDATED"));
+
+        assertThat(boardRepository.findById(second.getId()).orElseThrow().getDisplayOrder()).isEqualTo(1);
+        assertThat(boardRepository.findById(first.getId()).orElseThrow().getDisplayOrder()).isEqualTo(2);
+    }
+
+    @Test
+    void boardReorderRejectsUnauthorizedAndOutdatedLists() throws Exception {
+        var first = boardRepository.save(new Board("첫 게시판", "reorder-first", "admin", true));
+        var second = boardRepository.save(new Board("둘째 게시판", "reorder-second", "admin", true));
+        when(userRepository.findByIdAndDeletedAtIsNull("visitor"))
+                .thenReturn(Optional.of(new User("visitor", "test-hash")));
+
+        mvc.perform(patch("/api/boards/order").with(loggedInAs("visitor"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"boardIds\":[%d,%d]}".formatted(second.getId(), first.getId())))
+                .andExpect(status().isForbidden());
+
+        var admin = mockAdmin();
+        for (String ids : List.of("%d".formatted(first.getId()),
+                "%d,%d".formatted(first.getId(), first.getId()),
+                "%d,%d".formatted(first.getId(), Long.MAX_VALUE))) {
+            mvc.perform(patch("/api/boards/order").with(admin)
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"boardIds\":[" + ids + "]}"))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.code").value("BOARD_ORDER_MISMATCH"));
+        }
+
+        assertThat(boardRepository.findAll()).allMatch(board -> board.getDisplayOrder() == 0);
     }
 
     @Test

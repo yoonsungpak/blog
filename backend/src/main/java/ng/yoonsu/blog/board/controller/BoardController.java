@@ -5,6 +5,7 @@ import ng.yoonsu.blog.auth.security.AuthenticatedUser;
 import ng.yoonsu.blog.board.dto.create.CreateBoardRequestDto;
 import ng.yoonsu.blog.board.dto.create.CreateBoardResponseDto;
 import ng.yoonsu.blog.board.dto.delete.DeleteBoardResponseDto;
+import ng.yoonsu.blog.board.dto.update.ReorderBoardsRequestDto;
 import ng.yoonsu.blog.board.dto.update.UpdateBoardRequestDto;
 import ng.yoonsu.blog.board.service.BoardService;
 import ng.yoonsu.blog.common.response.ApiResponse;
@@ -45,6 +46,14 @@ public class BoardController {
             @PathVariable String boardId) {
         boardService.update(boardId, request);
         return ApiResponse.ok("BOARD_UPDATED");
+    }
+
+    @AdminOnly
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping("/order")
+    public ApiResponse<Void> reorder(@RequestBody @Valid ReorderBoardsRequestDto request) {
+        boardService.reorder(request.boardIds());
+        return ApiResponse.ok("BOARD_ORDER_UPDATED");
     }
 
     @AdminOnly

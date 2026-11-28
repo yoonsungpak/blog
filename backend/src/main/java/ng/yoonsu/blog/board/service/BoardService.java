@@ -13,6 +13,10 @@ import ng.yoonsu.blog.common.exception.BusinessException;
 import ng.yoonsu.blog.common.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class BoardService {
     private final BoardRepository boardRepository;
@@ -75,5 +79,18 @@ public class BoardService {
     public DeleteBoardResponseDto delete(Long boardId) {
         boardRepository.deleteById(boardId);
         return new DeleteBoardResponseDto(true);
+    }
+
+    @Transactional
+    public void reorder(List<Long> boardIds) {
+        var boardsById = boardRepository.findAll().stream()
+                .collect(Collectors.toMap(Board::getId, board -> board));
+        if (boardIds.size() != boardsById.size() || !boardsById.keySet().equals(new HashSet<>(boardIds))) {
+            throw new BusinessException(BoardErrorCode.BOARD_ORDER_MISMATCH);
+        }
+
+        for (int index = 0; index < boardIds.size(); index++) {
+            boardsById.get(boardIds.get(index)).setDisplayOrder(index + 1);
+        }
     }
 }
