@@ -7,9 +7,9 @@ import PostCard from "../PostCard/PostCard";
 import styles from "./PostFeed.module.css";
 
 export default async function PostFeed({ board }: { board?: Board }) {
-    const boards = await new BoardRepository().findAll();
-    const firstBoard = boards[0];
-    const visiblePosts = firstBoard?.isPublic && firstBoard.url && (!board || board.id === firstBoard.id)
+    const repository = new BoardRepository();
+    const [boards, firstBoard] = await Promise.all([repository.findVisible(), repository.findFirstVisible()]);
+    const visiblePosts = firstBoard?.url && (!board || board.id === firstBoard.id)
         ? samplePosts
         : [];
 
@@ -19,7 +19,7 @@ export default async function PostFeed({ board }: { board?: Board }) {
 
             <nav className={`${styles.boardNav} d-flex flex-wrap`} aria-label="게시판">
                 <Link href="/" aria-current={board ? undefined : "page"}>전체 글</Link>
-                {boards.map(({ id, url, name, isPublic }) => isPublic && url && (
+                {boards.map(({ id, url, name }) => url && (
                     <Link key={id} href={`/${url}`} aria-current={board?.id === id ? "page" : undefined}>
                         {name ?? url}
                     </Link>

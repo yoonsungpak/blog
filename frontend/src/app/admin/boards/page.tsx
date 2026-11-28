@@ -55,11 +55,11 @@ async function AdminBoards({ searchParams }: Pick<PageProps<"/admin/boards">, "s
                             <tr key={id}>
                                 <th scope="row">{name ?? "—"}</th>
                                 <td>
-                                    {url && isPublic ? (
+                                    {url ? (
                                         <Link className="text-decoration-underline font-monospace" href={`/${url}`}>
                                             /{url}
                                         </Link>
-                                    ) : url ? `/${url}` : "—"}
+                                    ) : "—"}
                                 </td>
                                 <td className="text-nowrap">{isPublic ? "공개" : "비공개"}</td>
                                 <td className="text-end">

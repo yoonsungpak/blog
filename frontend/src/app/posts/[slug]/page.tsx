@@ -11,8 +11,8 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: PageProps<"/posts/[slug]">): Promise<Metadata> {
-    const [{ slug }, [board]] = await Promise.all([params, new BoardRepository().findAll()]);
-    return board?.isPublic && board.url && samplePosts.some((post) => post.slug === slug)
+    const [{ slug }, board] = await Promise.all([params, new BoardRepository().findFirstVisible()]);
+    return board?.url && samplePosts.some((post) => post.slug === slug)
         ? {}
         : { title: "404 | Blog" };
 }
@@ -26,10 +26,10 @@ export default function PostPage({ params }: PageProps<"/posts/[slug]">) {
 }
 
 async function PostContent({ params }: Pick<PageProps<"/posts/[slug]">, "params">) {
-    const [{ slug }, [board]] = await Promise.all([params, new BoardRepository().findAll()]);
+    const [{ slug }, board] = await Promise.all([params, new BoardRepository().findFirstVisible()]);
     const post = samplePosts.find((entry) => entry.slug === slug);
 
-    if (!post || !board?.isPublic || !board.url) {
+    if (!post || !board?.url) {
         notFound();
     }
 
