@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
@@ -6,9 +6,11 @@ import UserService from "@/lib/user/service/UserService";
 import { getDb } from "../../db/getDb";
 import { type Board, boards } from "../domain/Boards";
 
+const displayOrder = sql`nullif(${boards.displayOrder}, 0) asc nulls last`;
+
 const findAll = cache(async () => {
     await connection();
-    return getDb().select().from(boards).orderBy(asc(boards.id)).all();
+    return getDb().select().from(boards).orderBy(displayOrder, asc(boards.id)).all();
 });
 
 const canViewPrivateBoards = cache(async () => {
@@ -23,14 +25,14 @@ const findVisible = cache(async () => {
 
     return getDb().select().from(boards)
         .where(eq(boards.isPublic, true))
-        .orderBy(asc(boards.id))
+        .orderBy(displayOrder, asc(boards.id))
         .all();
 });
 
 const findFirstVisible = cache(async () => {
     const includePrivate = await canViewPrivateBoards();
     const db = getDb();
-    // Sample posts belong to the first board, even when it is private.
+    // Keep sample posts attached to the earliest-created board when the menu is reordered.
     const firstBoardId = db.select({ id: boards.id }).from(boards).orderBy(asc(boards.id)).limit(1);
     return db.select().from(boards)
         .where(and(eq(boards.id, firstBoardId), includePrivate ? undefined : eq(boards.isPublic, true)))

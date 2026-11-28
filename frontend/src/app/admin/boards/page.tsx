@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache, Suspense } from "react";
 import Link from "next/link";
 import styles from "@/components/admin/BoardEditor.module.css";
+import BoardOrderModal from "@/components/admin/BoardOrderModal";
 import CreateBoardModal from "@/components/admin/CreateBoardModal";
 import EditBoardModal from "@/components/admin/EditBoardModal";
 import BoardRepository from "@/lib/board/repository/BoardRepository";
@@ -23,7 +24,7 @@ async function AdminBoards({ searchParams }: Pick<PageProps<"/admin/boards">, "s
         notFound();
     }
 
-    const [{ edit, create }, boards] = await Promise.all([searchParams, new BoardRepository().findAll()]);
+    const [{ edit, create, order }, boards] = await Promise.all([searchParams, new BoardRepository().findAll()]);
     const selectedBoard = boards.find((board) => String(board.id) === edit);
     const creating = create === "1";
 
@@ -35,6 +36,11 @@ async function AdminBoards({ searchParams }: Pick<PageProps<"/admin/boards">, "s
                     <Link className="btn btn-sm btn-outline-secondary rounded-3" href="/admin">
                         관리자 메뉴
                     </Link>
+                    {boards.length > 1 && (
+                        <Link className="btn btn-sm btn-outline-secondary rounded-3" href="/admin/boards?order=1" scroll={false}>
+                            순서 수정
+                        </Link>
+                    )}
                     <Link className={`btn btn-sm rounded-3 ${styles.primary}`} href="/admin/boards?create=1" scroll={false}>
                         새로 만들기
                     </Link>
@@ -77,7 +83,9 @@ async function AdminBoards({ searchParams }: Pick<PageProps<"/admin/boards">, "s
                     </tbody>
                 </table>
             </div>
-            {creating ? <CreateBoardModal /> : selectedBoard && (
+            {creating ? <CreateBoardModal /> : order === "1" && boards.length > 1 ? (
+                <BoardOrderModal key={boards.map(({ id }) => id).join(",")} boards={boards} />
+            ) : selectedBoard && (
                 <EditBoardModal key={selectedBoard.id} board={selectedBoard} />
             )}
         </section>
