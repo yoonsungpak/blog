@@ -111,6 +111,7 @@
 }
 
 .orderList li {
+    position: relative;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto auto;
     align-items: center;
@@ -121,9 +122,50 @@
     background: var(--paper);
 }
 
-.orderList li[data-drop-target="true"] {
+.orderList li[data-dragging="true"] {
     border-color: var(--accent);
+    border-style: dashed;
     background: #e9f1e8;
+}
+
+.orderList li[data-dragging="true"] > * {
+    opacity: 0.4;
+}
+
+.orderList li[data-drop-position]::after {
+    position: absolute;
+    z-index: 1;
+    inset-inline: -1px;
+    height: 3px;
+    border-radius: 100vw;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--paper);
+    content: "";
+    pointer-events: none;
+}
+
+.orderList li[data-drop-position="before"]::after {
+    top: -5px;
+}
+
+.orderList li[data-drop-position="after"]::after {
+    bottom: -5px;
+}
+
+.orderDragPreview {
+    position: fixed;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding-inline-end: 0.5rem;
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    background: var(--paper);
+    box-shadow: 0 6px 18px #15251b40;
+    color: var(--accent);
+    font-weight: 650;
+    pointer-events: none;
 }
 
 .orderName {

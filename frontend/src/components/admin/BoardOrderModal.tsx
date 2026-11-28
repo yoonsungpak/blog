@@ -5,11 +5,22 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import type { Board } from "@/lib/board/domain/Boards";
 import styles from "./BoardEditor.module.css";
 
+type BoardDrag = {
+    from: number;
+    target: number;
+    label: string;
+    x: number;
+    y: number;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+};
+
 export default function BoardOrderModal({ boards }: { boards: Board[] }) {
     const router = useRouter();
     const dialogRef = useRef<HTMLDialogElement>(null);
     const [order, setOrder] = useState(() => boards.map(({ id }) => id));
-    const [dropTarget, setDropTarget] = useState<number | null>(null);
+    const [drag, setDrag] = useState<BoardDrag | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const dirty = order.some((id, index) => id !== boards[index].id);
@@ -31,9 +42,33 @@ export default function BoardOrderModal({ boards }: { boards: Board[] }) {
     }
 
     function getDropIndex(event: PointerEvent<HTMLSpanElement>) {
-        if (!event.currentTarget.hasPointerCapture(event.pointerId)) return -1;
         const row = document.elementFromPoint(event.clientX, event.clientY)?.closest("li[data-board-id]");
         return order.indexOf(Number(row?.getAttribute("data-board-id")));
+    }
+
+    function startDrag(event: PointerEvent<HTMLSpanElement>, index: number, label: string) {
+        if (saving || !event.isPrimary || event.button !== 0) return;
+        const bounds = event.currentTarget.closest("li")?.getBoundingClientRect();
+        if (!bounds) return;
+
+        event.currentTarget.setPointerCapture(event.pointerId);
+        setDrag({
+            from: index,
+            target: index,
+            label,
+            x: event.clientX,
+            y: event.clientY,
+            offsetX: event.clientX - bounds.left,
+            offsetY: event.clientY - bounds.top,
+            width: bounds.width,
+        });
+    }
+
+    function updateDrag(event: PointerEvent<HTMLSpanElement>) {
+        if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        const target = getDropIndex(event);
+        const { clientX: x, clientY: y } = event;
+        setDrag((current) => current && { ...current, target, x, y });
     }
 
     async function saveOrder() {
@@ -76,22 +111,21 @@ export default function BoardOrderModal({ boards }: { boards: Board[] }) {
                     const board = boardsById.get(id)!;
                     const label = board.name ?? board.url ?? `게시판 ${id}`;
                     return (
-                        <li key={id} data-board-id={id} data-drop-target={dropTarget === index}>
+                        <li key={id} data-board-id={id} data-dragging={drag?.from === index}
+                            data-drop-position={drag?.target === index && drag.from !== index
+                                ? (index < drag.from ? "before" : "after")
+                                : undefined}>
                             <span
                                 className={styles.orderHandle}
                                 aria-hidden="true"
-                                onPointerDown={(event) => {
-                                    if (saving || !event.isPrimary || event.button !== 0) return;
-                                    event.currentTarget.setPointerCapture(event.pointerId);
-                                    setDropTarget(index);
-                                }}
-                                onPointerMove={(event) => {
+                                onPointerDown={(event) => startDrag(event, index, label)}
+                                onPointerMove={updateDrag}
+                                onPointerUp={(event) => {
                                     if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-                                    const target = getDropIndex(event);
-                                    setDropTarget(target < 0 ? null : target);
+                                    moveBoard(index, getDropIndex(event));
+                                    setDrag(null);
                                 }}
-                                onPointerUp={(event) => moveBoard(index, getDropIndex(event))}
-                                onLostPointerCapture={() => setDropTarget(null)}
+                                onLostPointerCapture={() => setDrag(null)}
                             >⠿</span>
                             <span className={styles.orderName}>{label}</span>
                             <button className="btn btn-sm btn-outline-secondary" type="button"
@@ -104,6 +138,13 @@ export default function BoardOrderModal({ boards }: { boards: Board[] }) {
                     );
                 })}
             </ol>
+            {drag && (
+                <div className={styles.orderDragPreview} aria-hidden="true"
+                    style={{ left: drag.x - drag.offsetX, top: drag.y - drag.offsetY, width: drag.width }}>
+                    <span className={styles.orderHandle}>⠿</span>
+                    <span className={styles.orderName}>{drag.label}</span>
+                </div>
+            )}
             {error && <p className="small text-danger mt-3 mb-0" role="alert">{error}</p>}
             <footer className={`${styles.actions} mt-4`}>
                 <button className="btn btn-outline-secondary rounded-3" type="button" disabled={saving}
