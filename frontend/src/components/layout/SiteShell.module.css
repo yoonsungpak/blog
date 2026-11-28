@@ -16,6 +16,14 @@
     border-bottom: 1px solid #e3e6e1;
 }
 
+.navbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
 .wordmark {
     font-size: 2rem;
     font-weight: 700;
@@ -29,7 +37,18 @@
 }
 
 .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
     width: min(100%, 22rem);
+}
+
+.account {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
 }
 
 .authAction {
@@ -62,6 +81,53 @@ button.authAction {
 .search input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--accent);
+}
+
+@media (max-width: 575.98px) {
+    .header {
+        padding-block: 0.75rem;
+    }
+
+    .navbar {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.75rem;
+    }
+
+    .actions {
+        display: contents;
+    }
+
+    .wordmark {
+        font-size: 1.75rem;
+    }
+
+    .account {
+        justify-self: end;
+        max-width: 100%;
+        gap: 0.625rem;
+        font-size: 0.875rem;
+    }
+
+    .username {
+        overflow: hidden;
+        color: var(--muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .navbar .authAction {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.75rem;
+        padding-inline: 0.125rem;
+        white-space: nowrap;
+    }
+
+    .search {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
 }
 
 .main {
