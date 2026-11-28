@@ -6,6 +6,9 @@ import styles from "./BoardEditor.module.css";
 
 export default function EditBoardModal({ board }: { board: Board }) {
     async function deleteBoard() {
+        if (!confirm("정말로 게시판을 삭제하겠습니까? 게시글도 함께 삭제되며 복구가 불가능합니다."))
+            return
+
         try {
             const res = await fetch(`/api/boards/${board.id}`, { method: "DELETE" });
             if (!res.ok) {
