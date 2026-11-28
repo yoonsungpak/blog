@@ -5,8 +5,15 @@ import { cache } from "react";
 import UserService from "@/lib/user/service/UserService";
 import { getDb } from "../../db/getDb";
 import { type Board, boards } from "../domain/Boards";
+import { categories } from "../domain/Categories";
 
 const displayOrder = sql`nullif(${boards.displayOrder}, 0) asc nulls last`;
+const findCategories = cache(async () => {
+    await connection();
+    return getDb().select().from(categories)
+        .orderBy(sql`nullif(${categories.displayOrder}, 0) asc nulls last`, asc(categories.id))
+        .all();
+});
 
 const findAll = cache(async () => {
     await connection();
@@ -40,6 +47,10 @@ const findFirstVisible = cache(async () => {
 });
 
 export default class BoardRepository {
+    public findCategories() {
+        return findCategories();
+    }
+
     public async findAll(): Promise<Board[]> {
         return findAll();
     }

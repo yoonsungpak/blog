@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import type { Board } from "@/lib/board/domain/Boards";
+import type { Category } from "@/lib/board/domain/Categories";
+import CategoryField from "./CategoryField";
 import styles from "./BoardEditor.module.css";
 import { type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 
-export default function EditBoardModal({ board }: { board: Board }) {
+export default function EditBoardModal({ board, categories }: { board: Board; categories: Category[] }) {
     const router = useRouter();
 
     async function deleteBoard() {
@@ -34,6 +36,7 @@ export default function EditBoardModal({ board }: { board: Board }) {
         const name = String(formData.get("name") ?? "");
         const url = String(formData.get("slug") ?? "");
         const isPublic = formData.has("public");
+        const categoryId = Number(formData.get("categoryId")) || null;
 
         if (!name)
             return alert("게시판 이름을 입력해주세요.");
@@ -45,6 +48,7 @@ export default function EditBoardModal({ board }: { board: Board }) {
             ...(name !== (board.name ?? "") && { name : name }),
             ...(url !== (board.url ?? "") && {url : url}),
             ...(isPublic !== board.isPublic && {isPublic : isPublic}),
+            ...(categoryId !== board.categoryId && { category: { id: categoryId } }),
         };
 
         if (Object.keys(changes).length === 0) {
@@ -96,6 +100,7 @@ export default function EditBoardModal({ board }: { board: Board }) {
                                 defaultValue={board.url ?? ""} />
                         </div>
                     </div>
+                    <CategoryField categories={categories} categoryId={board.categoryId} />
                     <div className="form-check form-switch">
                         <input className="form-check-input" id="board-public" name="public"
                             type="checkbox" role="switch" defaultChecked={board.isPublic} />

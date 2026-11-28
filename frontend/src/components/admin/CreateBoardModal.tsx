@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type SubmitEvent } from "react";
+import type { Category } from "@/lib/board/domain/Categories";
+import CategoryField from "./CategoryField";
 import styles from "./BoardEditor.module.css";
 
-export default function CreateBoardModal() {
+export default function CreateBoardModal({ categories }: { categories: Category[] }) {
     const router = useRouter();
     const [pending, setPending] = useState(false);
     const [error, setError] = useState("");
@@ -18,6 +20,7 @@ export default function CreateBoardModal() {
         const name = String(formData.get("name") ?? "").trim();
         const url = String(formData.get("url") ?? "").trim().toLowerCase();
         const isPublic = formData.has("public");
+        const categoryId = Number(formData.get("categoryId")) || null;
         if (!name || !url) {
             setError("게시판 이름과 주소를 입력해 주세요.");
             return;
@@ -35,7 +38,7 @@ export default function CreateBoardModal() {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ name, url, isPublic }),
+                body: JSON.stringify({ name, url, isPublic, categoryId }),
             });
 
             if (!res.ok) {
@@ -74,6 +77,7 @@ export default function CreateBoardModal() {
                             <input className="form-control" id="board-slug" name="url" required />
                         </div>
                     </div>
+                    <CategoryField categories={categories} />
                     <div className="form-check form-switch">
                         <input className="form-check-input" id="board-public" name="public"
                             type="checkbox" role="switch" defaultChecked />

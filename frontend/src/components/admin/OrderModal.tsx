@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
-import type { Board } from "@/lib/board/domain/Boards";
 import styles from "./BoardEditor.module.css";
 
 type BoardDrag = {
@@ -16,15 +15,21 @@ type BoardDrag = {
     width: number;
 };
 
-export default function BoardOrderModal({ boards }: { boards: Board[] }) {
+type OrderScope = { kind: "boards"; categoryId: number | null } | { kind: "categories" };
+
+export default function OrderModal({ items, scope }: {
+    items: { id: number; label: string }[];
+    scope: OrderScope;
+}) {
     const router = useRouter();
     const dialogRef = useRef<HTMLDialogElement>(null);
-    const [order, setOrder] = useState(() => boards.map(({ id }) => id));
+    const [order, setOrder] = useState(() => items.map(({ id }) => id));
     const [drag, setDrag] = useState<BoardDrag | null>(null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
-    const dirty = order.some((id, index) => id !== boards[index].id);
-    const boardsById = new Map(boards.map((board) => [board.id, board]));
+    const dirty = order.some((id, index) => id !== items[index].id);
+    const labelsById = new Map(items.map(({ id, label }) => [id, label]));
+    const title = scope.kind === "categories" ? "카테고리 순서 수정" : "게시판 순서 수정";
 
     useEffect(() => {
         const dialog = dialogRef.current;
@@ -42,8 +47,8 @@ export default function BoardOrderModal({ boards }: { boards: Board[] }) {
     }
 
     function getDropIndex(event: PointerEvent<HTMLSpanElement>) {
-        const row = document.elementFromPoint(event.clientX, event.clientY)?.closest("li[data-board-id]");
-        return order.indexOf(Number(row?.getAttribute("data-board-id")));
+        const row = document.elementFromPoint(event.clientX, event.clientY)?.closest("li[data-order-id]");
+        return order.indexOf(Number(row?.getAttribute("data-order-id")));
     }
 
     function startDrag(event: PointerEvent<HTMLSpanElement>, index: number, label: string) {
@@ -75,14 +80,17 @@ export default function BoardOrderModal({ boards }: { boards: Board[] }) {
         setSaving(true);
         setError("");
         try {
-            const response = await fetch("/api/boards/order", {
+            const [endpoint, body] = scope.kind === "categories"
+                ? ["/api/categories/order", { categoryIds: order }]
+                : ["/api/boards/order", { boardIds: order, categoryId: scope.categoryId }];
+            const response = await fetch(endpoint, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ boardIds: order }),
+                body: JSON.stringify(body),
             });
             if (!response.ok) {
                 const data = await response.json().catch(() => null);
-                setError(data?.message ?? "게시판 순서를 저장하지 못했습니다.");
+                setError(data?.message ?? "순서를 저장하지 못했습니다.");
                 setSaving(false);
                 return;
             }
@@ -95,23 +103,22 @@ export default function BoardOrderModal({ boards }: { boards: Board[] }) {
     }
 
     return (
-        <dialog ref={dialogRef} className={`${styles.editor} ${styles.orderDialog}`} aria-labelledby="board-order-title"
+        <dialog ref={dialogRef} className={`${styles.editor} ${styles.orderDialog}`} aria-labelledby="order-editor-title"
             onCancel={(event) => {
                 event.preventDefault();
                 if (!saving) router.replace("/admin/boards", { scroll: false });
             }}>
             <header className={styles.header}>
-                <h2 id="board-order-title">게시판 순서 수정</h2>
+                <h2 id="order-editor-title">{title}</h2>
                 <button className="btn-close" type="button" aria-label="닫기" disabled={saving}
                     onClick={() => router.replace("/admin/boards", { scroll: false })} />
             </header>
             <p className="small text-body-secondary">손잡이를 드래그하거나 화살표로 순서를 바꿀 수 있습니다.</p>
             <ol className={styles.orderList}>
                 {order.map((id, index) => {
-                    const board = boardsById.get(id)!;
-                    const label = board.name ?? board.url ?? `게시판 ${id}`;
+                    const label = labelsById.get(id)!;
                     return (
-                        <li key={id} data-board-id={id} data-dragging={drag?.from === index}
+                        <li key={id} data-order-id={id} data-dragging={drag?.from === index}
                             data-drop-position={drag?.target === index && drag.from !== index
                                 ? (index < drag.from ? "before" : "after")
                                 : undefined}>
