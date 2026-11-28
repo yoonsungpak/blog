@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { Board } from "@/lib/board/domain/Boards";
 import styles from "./BoardEditor.module.css";
+import { type SubmitEvent } from "react";
+import {redirect} from "next/navigation";
 
 export default function EditBoardModal({ board }: { board: Board }) {
     async function deleteBoard() {
@@ -23,8 +25,54 @@ export default function EditBoardModal({ board }: { board: Board }) {
         return location.reload();
     }
 
+    async function editBoard(e: SubmitEvent<HTMLFormElement>) {
+        e.preventDefault();
+
+        const formData = new FormData(e.currentTarget);
+        const name = String(formData.get("name") ?? "");
+        const url = String(formData.get("slug") ?? "");
+        const isPublic = formData.has("public");
+
+        if (!name)
+            return alert("게시판 이름을 입력해주세요.");
+
+        if (!url)
+            return alert("게시판 주소를 입력해주세요.");
+
+        const changes = {
+            ...(name !== (board.name ?? "") && { name : name }),
+            ...(url !== (board.url ?? "") && {url : url}),
+            ...(isPublic !== board.isPublic && {isPublic : isPublic}),
+        };
+
+        console.log(Object.keys(changes).length)
+        if (Object.keys(changes).length == 0) {
+            return alert("변경 사항이 없습니다.");
+        }
+
+        try {
+            const res = await fetch(`/api/boards/${board.id}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(changes),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                return alert(data.message);
+            }
+        } catch {
+            return alert("게시판 수정 실패");
+        }
+
+        alert("게시판이 수정되었습니다.");
+        redirect("/admin/boards");
+    }
+
     return (
-        <form className={styles.backdrop} method="post">
+        <form className={styles.backdrop} onSubmit={editBoard}>
             <section className={styles.editor} role="dialog" aria-modal="true" aria-labelledby="board-editor-title">
                 <header className={styles.header}>
                     <h2 id="board-editor-title">
@@ -52,14 +100,13 @@ export default function EditBoardModal({ board }: { board: Board }) {
                         <label className="form-check-label" htmlFor="board-public">공개</label>
                     </div>
                 </div>
-                <p className="small text-body-secondary mt-4 mb-3">게시판 변경을 저장하는 기능은 아직 연결되지 않았습니다.</p>
                 <footer className={styles.actions}>
                     <button className="btn btn-outline-danger rounded-3 me-auto" type="button" onClick={deleteBoard}>
                         삭제
                         <span className={`${styles.icon} ${styles.trash}`} aria-hidden="true" />
                     </button>
                     <Link className="btn btn-outline-secondary rounded-3" href="/admin/boards" scroll={false}>취소</Link>
-                    <button className={`btn rounded-3 ${styles.primary}`} type="submit" disabled>
+                    <button className={`btn rounded-3 ${styles.primary}`} type="submit">
                         저장
                         <span className={`${styles.icon} ${styles.floppy}`} aria-hidden="true" />
                     </button>
